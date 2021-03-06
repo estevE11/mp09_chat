@@ -144,7 +144,7 @@ class Serv implements Runnable{
         String username = (String) data.get("username");
         this.usernames[this.id] = username;
         JSONObject response = new JSONObject();
-        response.put("type", "none");
+        response.put("type", "connect");
         response.put("status", 200);
         response.put("id", this.id);
 

@@ -7,6 +7,7 @@ package com.esteve.mp09_chat; /**
  7  * ser muy sencillo.
  8  */
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -134,6 +135,10 @@ class Talk {
                 JSONObject dataMsg = (JSONObject) packet.get("data");
                 this.handleMessage(dataMsg);
                 break;
+            case "connect":
+                JSONArray messageHistory = (JSONArray) packet.get("messages");
+                this.handleConnected(messageHistory);
+                break;
         }
     }
 
@@ -141,6 +146,15 @@ class Talk {
         String username = (String) data.get("username");
         String msg = (String) data.get("message");
         this.addLine(username + ": " + msg);
+    }
+
+    private void handleConnected(JSONArray messageHistory) {
+        for(Object it : messageHistory) {
+            JSONObject msg = (JSONObject) it;
+            String username = (String) msg.get("username");
+            String str = (String) msg.get("message");
+            this.addLine(username + ": " + str);
+        }
     }
 
     private void sendConnectedPacket(PrintStream salida) {
@@ -161,7 +175,7 @@ class Talk {
         JSONObject data = new JSONObject();
         data.put("message", message);
         packet.put("data", data);
-        
+
 
         salida.println(packet.toJSONString());
     }
