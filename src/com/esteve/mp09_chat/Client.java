@@ -21,18 +21,14 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.*;
 
 public class Client {
     public static void main(String[] args)throws IOException {
         String direccion = "localhost";
         int puerto = 9999;
-        String login = "Nadie";
-
+        String login = "";
+        /*
         if(args.length >= 1){
             login = args[0];
         }
@@ -41,7 +37,15 @@ public class Client {
         }
         if(args.length >= 3){
             puerto = Integer.parseInt(args[2]);
-        }
+        }*/
+
+        direccion = JOptionPane.showInputDialog("Enter remote IP (default: localhost): ");
+        if(direccion.isEmpty())  direccion = "localhost";
+        String puertoStr = JOptionPane.showInputDialog("Enter PORT (default: 9999): ");
+        if(puertoStr.isEmpty()) puerto = 9999;
+        while(login.isEmpty())
+            login = JOptionPane.showInputDialog("Enter username: ");
+
         Socket socket = new Socket(direccion, puerto);
 
         Talk talk = new Talk(socket, login);
