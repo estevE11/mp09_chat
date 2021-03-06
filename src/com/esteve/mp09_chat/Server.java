@@ -168,13 +168,21 @@ class Serv implements Runnable{
         emitPacket.put("id", this.id);
 
         JSONObject packetData = new JSONObject();
-        packetData.put("message", (String)data.get("message"));
-        packetData.put("username", this.usernames[this.id]);
+        String message = (String)data.get("message");
+        packetData.put("message", message);
+        packetData.put("username", this.usernames[this.id] + "#" + this.id);
         this.messageHistory.add(packetData);
 
         emitPacket.put("data", packetData);
 
-        this.emit(emitPacket.toJSONString());
+        System.out.println(message);
+        System.out.println(message.startsWith("#"));
+        if(message.startsWith("#")) {
+            int id = Integer.parseInt(message.split(" ")[0].substring(1));
+            this.listaSockets.send(id, emitPacket.toJSONString());
+        } else {
+            this.emit(emitPacket.toJSONString());
+        }
     }
 
     private void emit(String packet) {
