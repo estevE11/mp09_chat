@@ -161,6 +161,7 @@ class Talk {
         JSONObject data = new JSONObject();
         data.put("message", message);
         packet.put("data", data);
+        
 
         salida.println(packet.toJSONString());
     }

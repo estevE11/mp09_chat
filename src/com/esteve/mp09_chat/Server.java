@@ -9,6 +9,7 @@ package com.esteve.mp09_chat; /**
  * de su respectivo cliente y cuando llega un mensaje lo envia a la Lista se sockets.
  */
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -31,13 +32,14 @@ public class Server {
         ListaSockets listaSockets = new ListaSockets(max);
         String[] usernames = new String[max];
         Serv[] serv = new Serv[max];
+        LinkedList<JSONObject> messageHistory = new LinkedList<JSONObject>();
         Thread[] thread = new Thread[max];
         try {
             serverSocket = new ServerSocket(puerto);
             for(int i = 0; i < max; i++){
                 Socket socket = serverSocket.accept();
                 listaSockets.add(socket);
-                serv[i] = new Serv(socket, listaSockets, usernames, i);
+                serv[i] = new Serv(socket, listaSockets, usernames, i, messageHistory);
                 thread[i] = new Thread(serv[i]);
                 thread[i].start();
             }
@@ -89,12 +91,14 @@ class Serv implements Runnable{
     private ListaSockets listaSockets; // Los otros sockets
     private String[] usernames; // Los otros sockets
     private int id;
+    private LinkedList<JSONObject> messageHistory;
 
-    public Serv(Socket s, ListaSockets ls, String[] usernames, int id) {
+    public Serv(Socket s, ListaSockets ls, String[] usernames, int id, LinkedList<JSONObject> messageHistory) {
         socket = s;
         listaSockets = ls;
         this.usernames = usernames;
         this.id = id;
+        this.messageHistory = messageHistory;
     }
 
     public void run() {
@@ -143,6 +147,11 @@ class Serv implements Runnable{
         response.put("type", "none");
         response.put("status", 200);
         response.put("id", this.id);
+
+        //Messages array
+        JSONArray messageHistoryData = new JSONArray();
+        messageHistoryData.addAll(this.messageHistory);
+        response.put("messages", messageHistoryData);
         this.listaSockets.send(this.id, response.toJSONString());
 
         // Tell others user connected
@@ -161,6 +170,7 @@ class Serv implements Runnable{
         JSONObject packetData = new JSONObject();
         packetData.put("message", (String)data.get("message"));
         packetData.put("username", this.usernames[this.id]);
+        this.messageHistory.add(packetData);
 
         emitPacket.put("data", packetData);
 
