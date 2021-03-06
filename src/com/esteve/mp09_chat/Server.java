@@ -13,6 +13,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -137,7 +138,9 @@ class Serv implements Runnable{
 
     private void handleConnect(JSONObject data) {
         String username = (String) data.get("username");
+        this.usernames[this.id] = username;
         JSONObject response = new JSONObject();
+        response.put("type", "none");
         response.put("status", 200);
         response.put("id", this.id);
         this.listaSockets.send(this.id, response.toJSONString());
@@ -150,6 +153,18 @@ class Serv implements Runnable{
     }
 
     private void handleMessage(JSONObject data) {
+        // Tell others user connected
+        JSONObject emitPacket = new JSONObject();
+        emitPacket.put("type", "message");
+        emitPacket.put("id", this.id);
+
+        JSONObject packetData = new JSONObject();
+        packetData.put("message", (String)data.get("message"));
+        packetData.put("username", this.usernames[this.id]);
+
+        emitPacket.put("data", packetData);
+
+        this.emit(emitPacket.toJSONString());
     }
 
     private void emit(String packet) {

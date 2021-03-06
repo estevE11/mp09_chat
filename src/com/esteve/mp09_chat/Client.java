@@ -8,6 +8,8 @@ package com.esteve.mp09_chat; /**
  8  */
 
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -76,6 +78,7 @@ class AccionEnviar implements ActionListener{
 class Talk {
     private Socket socket;
     private String login;
+    private JTextArea areaTexto;
 
     public Talk(Socket s, String l){
         socket = s;
@@ -85,7 +88,7 @@ class Talk {
     public void hablar(){
         JFrame marco = new JFrame(login);
         marco.setLayout(new BorderLayout());
-        JTextArea areaTexto = new JTextArea("");
+        areaTexto = new JTextArea("");
         areaTexto.setEditable(false);
         marco.add(areaTexto, "Center");
         JPanel panel = new JPanel(new FlowLayout());
@@ -101,6 +104,8 @@ class Talk {
 
         BufferedReader entrada;
         PrintStream salida;
+
+        JSONParser jsonParser = new JSONParser();
         int id = 0;
         try {
             salida = new PrintStream(socket.getOutputStream());
@@ -109,17 +114,29 @@ class Talk {
             entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String packet;
             while( (packet = entrada.readLine()) != null){
-                this.parsePacket(packet);
+                this.parsePacket((JSONObject) jsonParser.parse(packet));
             }
-        } catch (IOException e) {
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
     }
 
-    private void parsePacket(String packet) {
+    private void parsePacket(JSONObject packet) {
         // Imprimir missatge rebut per pantalla
-        //areaTexto.setText(areaTexto.getText() + mensaje + "\n");
         System.out.println(packet);
+        String type = (String) packet.get("type");
+        switch (type) {
+            case "message":
+                JSONObject dataMsg = (JSONObject) packet.get("data");
+                this.handleMessage(dataMsg);
+                break;
+        }
+    }
+
+    private void handleMessage(JSONObject data) {
+        String username = (String) data.get("username");
+        String msg = (String) data.get("message");
+        this.addLine(username + ": " + msg);
     }
 
     private void sendConnectedPacket(PrintStream salida) {
@@ -142,6 +159,10 @@ class Talk {
         packet.put("data", data);
 
         salida.println(packet.toJSONString());
+    }
+
+    private void addLine(String line) {
+        this.areaTexto.setText(areaTexto.getText() + line + "\n");
     }
 }
 
