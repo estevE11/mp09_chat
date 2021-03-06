@@ -9,12 +9,17 @@ package com.esteve.mp09_chat; /**
  * de su respectivo cliente y cuando llega un mensaje lo envia a la Lista se sockets.
  */
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.LinkedList;
 
 public class Server {
     private static final int puerto = 9999;
@@ -23,6 +28,7 @@ public class Server {
     public static void main(String[] args) {
         ServerSocket serverSocket;
         ListaSockets listaSockets = new ListaSockets(max);
+        String[] usernames = new String[max];
         Serv[] serv = new Serv[max];
         Thread[] thread = new Thread[max];
         try {
@@ -30,7 +36,7 @@ public class Server {
             for(int i = 0; i < max; i++){
                 Socket socket = serverSocket.accept();
                 listaSockets.add(socket);
-                serv[i] = new Serv(socket, listaSockets);
+                serv[i] = new Serv(socket, listaSockets, usernames, i);
                 thread[i] = new Thread(serv[i]);
                 thread[i].start();
             }
@@ -70,33 +76,85 @@ class ListaSockets {
 
     public PrintStream getSalida(int n) {
         return salida[n];
+    }
 
+    public void send(int i, String msg) {
+        this.getSalida(i).println(msg);
     }
 }
 
 class Serv implements Runnable{
     private Socket socket; // Socket propio.
     private ListaSockets listaSockets; // Los otros sockets
+    private String[] usernames; // Los otros sockets
+    private int id;
 
-    public Serv(Socket s, ListaSockets ls) {
+    public Serv(Socket s, ListaSockets ls, String[] usernames, int id) {
         socket = s;
         listaSockets = ls;
+        this.usernames = usernames;
+        this.id = id;
     }
 
     public void run() {
         BufferedReader entrada;
+        JSONParser jsonParser = new JSONParser();
 
         try {
             entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String mensaje;
-            while( (mensaje = entrada.readLine()) != null){
-                for (int i = 0; i < listaSockets.length(); i++) {
-                    listaSockets.getSalida(i).println(mensaje);
-                }
+            String packet;
+            while( (packet = entrada.readLine()) != null) {
+                this.parsePacket((JSONObject) jsonParser.parse(packet));
             }
-        } catch (IOException e) {
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
     }
 
+    /*
+    *   ESTRUCTURA PACKET:
+    *   - type: connect, msg, disconnect
+    *   - data:
+    *       - Dades depenen del tipus
+    *       - En cas de connect, el nom d'usuari
+    *       - En cas de msg, el missatge i la id
+    *       - En cas de disconnect, la id
+    * */
+    private void parsePacket(JSONObject packet) {
+        System.out.println(packet);
+        String type = (String) packet.get("type");
+        switch (type) {
+            case "connect":
+                JSONObject dataCon = (JSONObject) packet.get("data");
+                this.handleConnect(dataCon);
+                break;
+            case "msg":
+                JSONObject dataMsg = (JSONObject) packet.get("data");
+                this.handleMessage(dataMsg);
+                break;
+        }
+    }
+
+    private void handleConnect(JSONObject data) {
+        String username = (String) data.get("username");
+        JSONObject response = new JSONObject();
+        response.put("status", 200);
+        response.put("id", this.id);
+        this.listaSockets.send(this.id, response.toJSONString());
+
+        // Tell others user connected
+        JSONObject emitPacket = new JSONObject();
+        emitPacket.put("type", "connected");
+        emitPacket.put("id", this.id);
+        this.emit(emitPacket.toJSONString());
+    }
+
+    private void handleMessage(JSONObject data) {
+    }
+
+    private void emit(String packet) {
+        for (int i = 0; i < this.listaSockets.length(); i++) {
+            this.listaSockets.send(i, packet);
+        }
+    }
 }

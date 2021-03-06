@@ -7,6 +7,8 @@ package com.esteve.mp09_chat; /**
  7  * ser muy sencillo.
  8  */
 
+import org.json.simple.JSONObject;
+
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -52,6 +54,7 @@ class AccionEnviar implements ActionListener{
     private JTextField areaTexto;
     private PrintStream salida;
     private String login;
+    private int id = -1;
 
     public AccionEnviar(Socket s, JTextField at, String l){
         areaTexto = at;
@@ -64,8 +67,13 @@ class AccionEnviar implements ActionListener{
     }
 
     public void actionPerformed(ActionEvent e){
+        if(id < 0) return;
         salida.println(login + "> " + areaTexto.getText() );
         areaTexto.setText("");
+    }
+
+    private void setId(int id) {
+        this.id = id;
     }
 }
 
@@ -97,18 +105,47 @@ class Talk {
 
         BufferedReader entrada;
         PrintStream salida;
+        int id = 0;
         try {
             salida = new PrintStream(socket.getOutputStream());
-            salida.println(login + " se he conectado" );
+            this.sendConnectedPacket(salida);
 
             entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String mensaje;
-            while( (mensaje = entrada.readLine()) != null){
-                areaTexto.setText(areaTexto.getText() + mensaje + "\n");
+            String packet;
+            while( (packet = entrada.readLine()) != null){
+                this.parsePacket(packet);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void parsePacket(String packet) {
+        // Imprimir missatge rebut per pantalla
+        //areaTexto.setText(areaTexto.getText() + mensaje + "\n");
+        System.out.println(packet);
+    }
+
+    private void sendConnectedPacket(PrintStream salida) {
+        JSONObject packet = new JSONObject();
+        packet.put("type", "connect");
+
+        JSONObject data = new JSONObject();
+        data.put("username", this.login);
+        packet.put("data", data);
+
+        salida.println(packet.toJSONString());
+    }
+
+    private void sendMessagePacket(PrintStream salida, String message) {
+        JSONObject packet = new JSONObject();
+        packet.put("type", "msg");
+
+        JSONObject data = new JSONObject();
+        data.put("message", message);
+        packet.put("data", data);
+
+        salida.println(packet.toJSONString());
     }
 }
 
