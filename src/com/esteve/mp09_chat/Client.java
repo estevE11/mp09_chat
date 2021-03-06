@@ -53,11 +53,12 @@ public class Client {
 class AccionEnviar implements ActionListener{
     private JTextField areaTexto;
     private PrintStream salida;
+    private Talk talk;
     private String login;
-    private int id = -1;
 
-    public AccionEnviar(Socket s, JTextField at, String l){
+    public AccionEnviar(Socket s, JTextField at, String l, Talk talk){
         areaTexto = at;
+        this.talk = talk;
         try {
             salida = new PrintStream(s.getOutputStream());
         } catch (IOException e) {
@@ -67,13 +68,8 @@ class AccionEnviar implements ActionListener{
     }
 
     public void actionPerformed(ActionEvent e){
-        if(id < 0) return;
-        salida.println(login + "> " + areaTexto.getText() );
+        this.talk.sendMessagePacket(this.salida, areaTexto.getText());
         areaTexto.setText("");
-    }
-
-    private void setId(int id) {
-        this.id = id;
     }
 }
 
@@ -97,7 +93,7 @@ class Talk {
         JTextField campoTexto = new JTextField(30);
         panel.add(campoTexto);
         JButton botonEnviar = new JButton("Enviar");
-        AccionEnviar ae = new AccionEnviar(socket, campoTexto, login);
+        AccionEnviar ae = new AccionEnviar(socket, campoTexto, login, this);
         botonEnviar.addActionListener(ae);
         panel.add(botonEnviar);
         marco.setSize(600,800);
@@ -137,7 +133,7 @@ class Talk {
         salida.println(packet.toJSONString());
     }
 
-    private void sendMessagePacket(PrintStream salida, String message) {
+    public void sendMessagePacket(PrintStream salida, String message) {
         JSONObject packet = new JSONObject();
         packet.put("type", "msg");
 

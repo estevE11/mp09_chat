@@ -117,7 +117,7 @@ class Serv implements Runnable{
     *   - data:
     *       - Dades depenen del tipus
     *       - En cas de connect, el nom d'usuari
-    *       - En cas de msg, el missatge i la id
+    *       - En cas de msg, el missatge i el desti (all o nom d'usuari)
     *       - En cas de disconnect, la id
     * */
     private void parsePacket(JSONObject packet) {
